@@ -8,6 +8,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 var lineOpt int
@@ -22,11 +23,8 @@ type InputFile struct {
 
 var fileSizeUnitToBytes = map[string]int{
 	"K": 1024,
-	"k": 1024,
 	"M": 1024 * 1024,
-	"m": 1024 * 1024,
 	"G": 1024 * 1024 * 1024,
-	"g": 1024 * 1024 * 1024,
 }
 
 func init() {
@@ -134,14 +132,18 @@ func (f *InputFile) splitFileBySize(sizePerFile int) error {
 		// buf: 読み込んだデータ
 		// readByte: 読み込んだbyte数
 		// readで読み込んだバイト数などの情報を持っているので毎回次のデータになる
-		readByte, _ := f.file.Read(buf)
+		readByte, err := f.file.Read(buf)
+
+		if err != nil {
+			return err
+		}
 		if readByte == 0 {
 			break
 		}
 		fileCount++
 
 		outputFilename := generateFilename(f.NameWithoutExt, fileCount, f.Ext)
-		err := os.WriteFile(outputFilename, buf[:readByte], 0644)
+		err = os.WriteFile(outputFilename, buf[:readByte], 0644)
 		if err != nil {
 			return err
 		}
@@ -193,7 +195,7 @@ func convertFileSizeToInt(strFileSize string) (int, error) {
 			return 0, err
 		}
 
-		sizeUnit := matches[3]
+		sizeUnit := strings.ToUpper(matches[3])
 
 		unitToByte := fileSizeUnitToBytes[sizeUnit]
 		if unitToByte == 0 {
@@ -208,11 +210,13 @@ func convertFileSizeToInt(strFileSize string) (int, error) {
 }
 
 func generateFilename(prefix string, count int, extension string) string {
-	characters := "abcdefghijklmnopqrstuvwxyz"
-	suffix := ""
-	for i := 0; i < 2; i++ {
-		suffix = string(characters[count%26]) + suffix
-		count = count / 26
-	}
-	return prefix + suffix + extension
+	// rune型として扱う -> 文字コードのこと
+	// 元の文字に戻すにはstring関数を使う
+	firstChar := 'a' + (count % 26)
+	secondChar := 'a' + (count / 26 % 26)
+
+	fmt.Println(firstChar)
+	fmt.Println(secondChar)
+	// %cでUnicodeを表す
+	return fmt.Sprintf("%s%c%c%s", prefix, firstChar, secondChar, extension)
 }
