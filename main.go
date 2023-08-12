@@ -12,6 +12,12 @@ var lineOpt int
 var chunkOpt int
 var sizeOpt int
 
+type InputFile struct {
+	file           *os.File
+	NameWithoutExt string
+	Ext            string
+}
+
 func init() {
 	// ポインタを指定して設定を予約
 	flag.IntVar(&lineOpt, "l", 0, "分割ファイルの行数")
@@ -33,37 +39,51 @@ func main() {
 	}
 
 	var filepath = flag.Args()[0]
-	var splitErr error = nil
-	if lineOpt > 0 {
-		splitErr = splitFileByLine(filepath, lineOpt)
-	} else if chunkOpt > 0 {
-		splitErr = splitFileByChunk(filepath, chunkOpt)
-	} else if sizeOpt > 0 {
-		splitErr = splitFileBySize(filepath, sizeOpt)
-	}
 
-	if splitErr != nil {
-		fmt.Fprintln(os.Stderr, splitErr)
+	err := runSplit(filepath)
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-
 }
 
-func splitFileByLine(filepath string, linesPerFile int) error {
+func runSplit(filepath string) error {
+	inputFilename := path.Base(filepath)
+	inputFileExt := path.Ext(filepath)
+	inputFileWithoutExt := inputFilename[:len(inputFilename)-len(inputFileExt)]
+
 	sf, err := os.Open(filepath)
 
 	if err != nil {
 		return err
 	}
 
-	// 関数終了時に閉じる
 	defer sf.Close()
 
-	scanner := bufio.NewScanner(sf)
+	inputFile := &InputFile{
+		file:           sf,
+		NameWithoutExt: inputFileWithoutExt,
+		Ext:            inputFileExt,
+	}
 
-	inputFilename := path.Base(filepath)
-	inputFileExt := path.Ext(filepath)
-	inputFileWithoutExt := inputFilename[:len(inputFilename)-len(inputFileExt)]
+	if lineOpt > 0 {
+		err = inputFile.splitFileByLine(lineOpt)
+	} else if chunkOpt > 0 {
+		err = inputFile.splitFileByChunk(chunkOpt)
+	} else if sizeOpt > 0 {
+		err = inputFile.splitFileBySize(sizeOpt)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *InputFile) splitFileByLine(linesPerFile int) error {
+	scanner := bufio.NewScanner(f.file)
 
 	var lineResult []byte
 	lineCount := 0
@@ -75,7 +95,7 @@ func splitFileByLine(filepath string, linesPerFile int) error {
 		lineCount++
 
 		if lineCount%linesPerFile == 0 {
-			outputFilename := generateFilename(inputFileWithoutExt, fileCount, inputFileExt)
+			outputFilename := generateFilename(f.NameWithoutExt, fileCount, f.Ext)
 			err := os.WriteFile(outputFilename, lineResult, 0644)
 			if err != nil {
 				return err
@@ -85,18 +105,33 @@ func splitFileByLine(filepath string, linesPerFile int) error {
 		}
 	}
 
-	// まとめてエラー処理をする
 	if err := scanner.Err(); err != nil {
 		fmt.Fprintln(os.Stderr, "読み込みに失敗しました:", err)
 	}
 	return nil
 }
 
-func splitFileByChunk(filepath string, chunk int) error {
+func (f *InputFile) splitFileBySize(size int) error {
+
 	return nil
 }
 
-func splitFileBySize(filepath string, size int) error {
+func (f *InputFile) splitFileByChunk(fileChunk int) error {
+	fileinfo, err := f.file.Stat()
+	if err != nil {
+		return err
+	}
+
+	fileSize := fileinfo.Size()
+
+	chunkFileSize := fileSize / int64(fileChunk)
+
+	err = f.splitFileBySize(int(chunkFileSize))
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
