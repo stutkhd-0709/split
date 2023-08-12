@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
+	"path"
 )
 
 var lineOpt int
@@ -31,29 +33,79 @@ func main() {
 	}
 
 	var filepath = flag.Args()[0]
-	var err error = nil
+	var splitErr error = nil
 	if lineOpt > 0 {
-		err = SplitFileByLine(filepath, lineOpt)
+		splitErr = splitFileByLine(filepath, lineOpt)
 	} else if chunkOpt > 0 {
-		err = SplitFileByChunk(filepath, chunkOpt)
+		splitErr = splitFileByChunk(filepath, chunkOpt)
 	} else if sizeOpt > 0 {
-		err = SplitFileBySize(filepath, sizeOpt)
+		splitErr = splitFileBySize(filepath, sizeOpt)
 	}
 
-	if err != nil {
+	if splitErr != nil {
+		fmt.Fprintln(os.Stderr, splitErr)
 		os.Exit(1)
 	}
 
 }
 
-func SplitFileByLine(filepath string, line int) error {
+func splitFileByLine(filepath string, linesPerFile int) error {
+	sf, err := os.Open(filepath)
+
+	if err != nil {
+		return err
+	}
+
+	// 関数終了時に閉じる
+	defer sf.Close()
+
+	scanner := bufio.NewScanner(sf)
+
+	inputFilename := path.Base(filepath)
+	inputFileExt := path.Ext(filepath)
+	inputFileWithoutExt := inputFilename[:len(inputFilename)-len(inputFileExt)]
+
+	var lineResult []byte
+	lineCount := 0
+	fileCount := 0
+
+	for scanner.Scan() {
+		line := append(scanner.Bytes(), byte('\n'))
+		lineResult = append(lineResult, line...)
+		lineCount++
+
+		if lineCount%linesPerFile == 0 {
+			outputFilename := generateFilename(inputFileWithoutExt, fileCount, inputFileExt)
+			err := os.WriteFile(outputFilename, lineResult, 0644)
+			if err != nil {
+				return err
+			}
+			lineResult = []byte{}
+			fileCount++
+		}
+	}
+
+	// まとめてエラー処理をする
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "読み込みに失敗しました:", err)
+	}
 	return nil
 }
 
-func SplitFileByChunk(filepath string, chunk int) error {
+func splitFileByChunk(filepath string, chunk int) error {
 	return nil
 }
 
-func SplitFileBySize(filepath string, size int) error {
+func splitFileBySize(filepath string, size int) error {
 	return nil
+}
+
+func generateFilename(prefix string, count int, extension string) string {
+	characters := "abcdefghijklmnopqrstuvwxyz"
+	suffix := ""
+	for i := 0; i < 2; i++ {
+		suffix = string(characters[count%26]) + suffix
+		count = count / 26
+	}
+	return prefix + suffix + extension
 }
