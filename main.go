@@ -126,8 +126,26 @@ func (f *InputFile) splitFileByLine(linesPerFile int) error {
 	return nil
 }
 
-func (f *InputFile) splitFileBySize(size int) error {
-	fmt.Println(size)
+func (f *InputFile) splitFileBySize(sizePerFile int) error {
+	buf := make([]byte, sizePerFile)
+
+	fileCount := 0
+	for {
+		// buf: 読み込んだデータ
+		// readByte: 読み込んだbyte数
+		// readで読み込んだバイト数などの情報を持っているので毎回次のデータになる
+		readByte, _ := f.file.Read(buf)
+		if readByte == 0 {
+			break
+		}
+		fileCount++
+
+		outputFilename := generateFilename(f.NameWithoutExt, fileCount, f.Ext)
+		err := os.WriteFile(outputFilename, buf[:readByte], 0644)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -139,9 +157,9 @@ func (f *InputFile) splitFileByChunk(fileChunk int) error {
 
 	fileSize := fileinfo.Size()
 
-	chunkFileSize := fileSize / int64(fileChunk)
+	chunkFileSize := int(fileSize) / fileChunk
 
-	err = f.splitFileBySize(int(chunkFileSize))
+	err = f.splitFileBySize(chunkFileSize)
 
 	if err != nil {
 		return err
