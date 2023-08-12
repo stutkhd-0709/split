@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
+	"strconv"
 )
 
 var lineOpt int
 var chunkOpt int
-var sizeOpt int
+var sizeOpt string
 
 type InputFile struct {
 	file           *os.File
@@ -18,11 +20,20 @@ type InputFile struct {
 	Ext            string
 }
 
+var fileSizeUnitToBytes = map[string]int{
+	"K": 1024,
+	"k": 1024,
+	"M": 1024 * 1024,
+	"m": 1024 * 1024,
+	"G": 1024 * 1024 * 1024,
+	"g": 1024 * 1024 * 1024,
+}
+
 func init() {
 	// ポインタを指定して設定を予約
 	flag.IntVar(&lineOpt, "l", 0, "分割ファイルの行数")
 	flag.IntVar(&chunkOpt, "n", 0, "分割したいファイル数")
-	flag.IntVar(&sizeOpt, "b", 0, "分割したいファイルサイズ")
+	flag.StringVar(&sizeOpt, "b", "0", "分割したいファイルサイズ")
 }
 
 func main() {
@@ -67,12 +78,16 @@ func runSplit(filepath string) error {
 		Ext:            inputFileExt,
 	}
 
-	if lineOpt > 0 {
+	if lineOpt != 0 {
 		err = inputFile.splitFileByLine(lineOpt)
-	} else if chunkOpt > 0 {
+	} else if chunkOpt != 0 {
 		err = inputFile.splitFileByChunk(chunkOpt)
-	} else if sizeOpt > 0 {
-		err = inputFile.splitFileBySize(sizeOpt)
+	} else if sizeOpt != "0" {
+		intFileSize, convertErr := convertFileSizeToInt(sizeOpt)
+		if convertErr != nil {
+			return err
+		}
+		err = inputFile.splitFileBySize(intFileSize)
 	}
 
 	if err != nil {
@@ -112,7 +127,7 @@ func (f *InputFile) splitFileByLine(linesPerFile int) error {
 }
 
 func (f *InputFile) splitFileBySize(size int) error {
-
+	fmt.Println(size)
 	return nil
 }
 
@@ -133,6 +148,45 @@ func (f *InputFile) splitFileByChunk(fileChunk int) error {
 	}
 
 	return nil
+}
+
+func convertFileSizeToInt(strFileSize string) (int, error) {
+	numericPattern := `^\d+$`
+	match, err := regexp.MatchString(numericPattern, strFileSize)
+
+	if err != nil {
+		return 0, err
+	}
+
+	var intFileByteSize int
+	if match {
+		intFileByteSize, _ = strconv.Atoi(strFileSize)
+	} else {
+		re := regexp.MustCompile(`^(\d+(\.\d+)?)([KkMmGg])$`)
+		matches := re.FindStringSubmatch(strFileSize)
+
+		if len(matches) == 0 {
+			argumentErr := fmt.Errorf("error: サイズの指定方法が間違えています")
+			return 0, argumentErr
+		}
+
+		inputFileSize, err := strconv.Atoi(matches[1])
+		if err != nil {
+			return 0, err
+		}
+
+		sizeUnit := matches[3]
+
+		unitToByte := fileSizeUnitToBytes[sizeUnit]
+		if unitToByte == 0 {
+			argumentErr := fmt.Errorf("error: 対応してないサイズ単位です")
+			return 0, argumentErr
+		}
+
+		intFileByteSize = inputFileSize * unitToByte
+	}
+
+	return intFileByteSize, nil
 }
 
 func generateFilename(prefix string, count int, extension string) string {
