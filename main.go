@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var lineOpt int
@@ -102,25 +103,44 @@ func (f *InputFile) splitFileByLine(linesPerFile int) error {
 	lineCount := 0
 	fileCount := 0
 
+	var wg sync.WaitGroup
+	errors := make(chan error)
+
 	for scanner.Scan() {
 		line := append(scanner.Bytes(), byte('\n'))
 		lineResult = append(lineResult, line...)
 		lineCount++
-
 		if lineCount%linesPerFile == 0 {
-			outputFilename := generateFilename(f.NameWithoutExt, fileCount, f.Ext)
-			err := os.WriteFile(outputFilename, lineResult, 0644)
-			if err != nil {
-				return err
-			}
-			lineResult = []byte{}
+			wg.Add(1)
+			go func(_fileCount int, _lineResult []byte) {
+				defer wg.Done()
+				outputFilename := generateFilename(f.NameWithoutExt, _fileCount, f.Ext)
+				err := os.WriteFile(outputFilename, _lineResult, 0644)
+				if err != nil {
+					errors <- err
+				}
+			}(fileCount, lineResult)
 			fileCount++
+			lineResult = []byte{}
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "読み込みに失敗しました:", err)
+	go func() {
+		wg.Wait()
+		close(errors)
+	}()
+
+	// エラーがあるか確認
+	// 上のgoroutineが実行されるまで行う
+	// 子goroutineが処理を終了するたびに実行される
+	// for rangeをchannelで行う場合、goではそのチャンネルがcloseされるまで実行される
+	for err := range errors {
+		if err != nil {
+			// Handle error
+			fmt.Println("Error:", err)
+		}
 	}
+
 	return nil
 }
 
