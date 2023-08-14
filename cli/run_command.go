@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"io"
 	"os"
 	"path"
 
@@ -11,7 +12,13 @@ import (
 
 type InputFile types.InputFile
 
-func RunSplit(filepath string, inputOpt *types.InputOpt) error {
+type CLI struct {
+	Stdout io.Writer
+	Stderr io.Writer
+	Stdin  io.Reader
+}
+
+func (cli *CLI) RunCommand(filepath string, inputOpt *types.InputOpt) error {
 	inputFilename := path.Base(filepath)
 	inputFileExt := path.Ext(filepath)
 	inputFileWithoutExt := inputFilename[:len(inputFilename)-len(inputFileExt)]

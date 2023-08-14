@@ -1,10 +1,11 @@
 package types
 
-import "os"
+import (
+	"os"
+)
 
 type InputFile struct {
 	File           *os.File
-	FilePath       string
 	NameWithoutExt string
 	Ext            string
 	Opt            *InputOpt
