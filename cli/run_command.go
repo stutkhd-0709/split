@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -18,7 +20,36 @@ type CLI struct {
 	Stdin  io.Reader
 }
 
-func (cli *CLI) RunCommand(filepath string, inputOpt *types.InputOpt) error {
+var lineOpt int
+var chunkOpt int
+var sizeOpt string
+
+func init() {
+	// ポインタを指定して設定を予約
+	flag.IntVar(&lineOpt, "l", 0, "分割ファイルの行数")
+	flag.IntVar(&chunkOpt, "n", 0, "分割したいファイル数")
+	flag.StringVar(&sizeOpt, "b", "0", "分割したいファイルサイズ")
+}
+
+func (cli *CLI) RunCommand(args []string) error {
+	flag.Parse()
+
+	if flag.NArg() != 1 {
+		return fmt.Errorf("[ERROR] ファイルを指定してください")
+	}
+
+	if flag.NFlag() != 1 {
+		return fmt.Errorf("[ERROR] オプションを指定してください")
+	}
+
+	filepath := flag.Args()[0]
+
+	Opts := &types.InputOpt{
+		LineOpt:  lineOpt,
+		ChunkOpt: chunkOpt,
+		SizeOpt:  sizeOpt,
+	}
+
 	inputFilename := path.Base(filepath)
 	inputFileExt := path.Ext(filepath)
 	inputFileWithoutExt := inputFilename[:len(inputFilename)-len(inputFileExt)]
@@ -35,15 +66,15 @@ func (cli *CLI) RunCommand(filepath string, inputOpt *types.InputOpt) error {
 		File:           sf,
 		NameWithoutExt: inputFileWithoutExt,
 		Ext:            inputFileExt,
-		Opt:            inputOpt,
+		Opt:            Opts,
 	}
 
-	if inputOpt.LineOpt != 0 {
-		err = inputFile.SplitByLine(inputOpt.LineOpt)
-	} else if inputOpt.ChunkOpt != 0 {
-		err = inputFile.SplitByChunk(inputOpt.ChunkOpt)
-	} else if inputOpt.SizeOpt != "0" {
-		intFileSize, convertErr := helpers.ConvertFileSizeToInt(inputOpt.SizeOpt)
+	if lineOpt != 0 {
+		err = inputFile.SplitByLine(lineOpt)
+	} else if chunkOpt != 0 {
+		err = inputFile.SplitByChunk(chunkOpt)
+	} else if sizeOpt != "0" {
+		intFileSize, convertErr := helpers.ConvertFileSizeToInt(sizeOpt)
 		if convertErr != nil {
 			return err
 		}

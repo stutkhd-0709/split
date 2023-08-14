@@ -7,6 +7,6 @@ import (
 )
 
 func main() {
-	exitCode := cli.Main()
+	exitCode := cli.Main(os.Args)
 	os.Exit(exitCode)
 }
