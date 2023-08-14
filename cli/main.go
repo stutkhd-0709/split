@@ -28,13 +28,13 @@ func Main() int {
 	flag.Parse()
 
 	if flag.NArg() != 1 {
-		fmt.Fprintf(os.Stderr, "[ERROR] length must be greater than 0, length = %d \n", flag.NArg())
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "[ERROR] ファイルを指定してください")
+		return ExitNG
 	}
 
 	if flag.NFlag() != 1 {
-		flag.Usage()
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "[ERROR] オプションを指定してください")
+		return ExitNG
 	}
 
 	filepath := flag.Args()[0]
