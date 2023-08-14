@@ -2,7 +2,6 @@ package cli
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"sync"
 
@@ -49,8 +48,7 @@ func (f *InputFile) SplitByLine(linesPerFile int) error {
 	// for rangeをchannelで行う場合、goではそのチャンネルがcloseされるまで実行される
 	for err := range errors {
 		if err != nil {
-			// Handle error
-			fmt.Println("Error:", err)
+			return err
 		}
 	}
 
