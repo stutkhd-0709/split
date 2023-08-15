@@ -17,8 +17,8 @@ func Main(args []string) int {
 		Stdin:  os.Stdin,
 	}
 
-	if err := cli.RunCommand(args); err != nil {
-		fmt.Fprintln(cli.Stderr, "Error:", err)
+	if err := cli.RunCommand(os.Args); err != nil {
+		fmt.Fprintln(cli.Stderr, "[ERROR] ", err)
 		return ExitNG
 	}
 

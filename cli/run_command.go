@@ -20,39 +20,55 @@ type CLI struct {
 	Stdin  io.Reader
 }
 
-var lineOpt int
-var chunkOpt int
-var sizeOpt string
-
-func init() {
-	// ポインタを指定して設定を予約
-	flag.IntVar(&lineOpt, "l", 0, "分割ファイルの行数")
-	flag.IntVar(&chunkOpt, "n", 0, "分割したいファイル数")
-	flag.StringVar(&sizeOpt, "b", "0", "分割したいファイルサイズ")
-}
-
 func (cli *CLI) RunCommand(args []string) error {
-	flag.Parse()
+	var (
+		lineOpt  int
+		chunkOpt int
+		sizeOpt  string
+	)
+	flagSet := flag.NewFlagSet(args[0], flag.ContinueOnError)
+	flagSet.IntVar(&lineOpt, "l", 0, "分割ファイルの行数")
+	flagSet.IntVar(&chunkOpt, "n", 0, "分割したいファイル数")
+	flagSet.StringVar(&sizeOpt, "b", "", "分割したいファイルサイズ")
 
-	if flag.NArg() != 1 {
+	// テスト用にos.Argsを使用しないようにする
+	err := flagSet.Parse(args[1:])
+
+	if err != nil {
+		return err
+	}
+
+	if flagSet.NArg() < 0 {
 		return fmt.Errorf("[ERROR] ファイルを指定してください")
 	}
 
-	if flag.NFlag() != 1 {
+	if flagSet.NFlag() == 0 {
 		return fmt.Errorf("[ERROR] オプションを指定してください")
 	}
 
-	filepath := flag.Args()[0]
+	if lineOpt == 0 && chunkOpt == 0 && sizeOpt == "" {
+		return fmt.Errorf("[ERROR] l, n, bのうちどれかオプションを指定してください")
+	}
+
+	filepath := flagSet.Args()[0]
+
+	var dist string
+	if len(flagSet.Args()) > 1 {
+		dist = flagSet.Args()[1]
+	} else {
+		dist = ""
+	}
+
+	_, err = os.Stat(filepath)
+	if err != nil {
+		return fmt.Errorf("[ERROR] ファイルが存在しません")
+	}
 
 	Opts := &types.InputOpt{
 		LineOpt:  lineOpt,
 		ChunkOpt: chunkOpt,
 		SizeOpt:  sizeOpt,
 	}
-
-	inputFilename := path.Base(filepath)
-	inputFileExt := path.Ext(filepath)
-	inputFileWithoutExt := inputFilename[:len(inputFilename)-len(inputFileExt)]
 
 	sf, err := os.Open(filepath)
 
@@ -63,22 +79,21 @@ func (cli *CLI) RunCommand(args []string) error {
 	defer sf.Close()
 
 	inputFile := &InputFile{
-		File:           sf,
-		NameWithoutExt: inputFileWithoutExt,
-		Ext:            inputFileExt,
-		Opt:            Opts,
+		File:     sf,
+		FileName: path.Base(filepath),
+		Opt:      Opts,
 	}
 
 	if lineOpt != 0 {
-		err = inputFile.SplitByLine(lineOpt)
+		err = inputFile.SplitByLine(lineOpt, dist)
 	} else if chunkOpt != 0 {
-		err = inputFile.SplitByChunk(chunkOpt)
+		err = inputFile.SplitByChunk(chunkOpt, dist)
 	} else if sizeOpt != "0" {
 		intFileSize, convertErr := helpers.ConvertFileSizeToInt(sizeOpt)
 		if convertErr != nil {
 			return err
 		}
-		err = inputFile.SplitBySize(intFileSize)
+		err = inputFile.SplitBySize(intFileSize, dist)
 	}
 
 	if err != nil {

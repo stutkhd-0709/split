@@ -3,7 +3,6 @@ package helpers
 import (
 	"fmt"
 	"os"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -54,7 +53,7 @@ func ConvertFileSizeToInt(strFileSize string) (int, error) {
 	return intFileByteSize, nil
 }
 
-func GenerateFilename(dist string, count int, extension string) (string, error) {
+func GenerateFilename(dist string, count int) (string, error) {
 	// rune型として扱う -> 文字コードのこと
 	// 元の文字に戻すにはstring関数を使う
 	firstChar := 'a' + (count / 26 % 26)
@@ -77,15 +76,7 @@ func GenerateFilename(dist string, count int, extension string) (string, error) 
 	}
 
 	// %cでUnicodeを表す
-	return fmt.Sprintf("%s%c%c%s", prefix, firstChar, secondChar, extension), nil
-}
-
-func ParseFilePath(filepath string) (string, string) {
-	inputFilename := path.Base(filepath)
-	inputFileExt := path.Ext(filepath)
-	inputFileWithoutExt := inputFilename[:len(inputFilename)-len(inputFileExt)]
-
-	return inputFileWithoutExt, inputFileExt
+	return fmt.Sprintf("%s%c%c", prefix, firstChar, secondChar), nil
 }
 
 func ensureDirectoryExists(path string) (bool, error) {

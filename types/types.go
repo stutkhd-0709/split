@@ -5,10 +5,9 @@ import (
 )
 
 type InputFile struct {
-	File           *os.File
-	NameWithoutExt string
-	Ext            string
-	Opt            *InputOpt
+	File     *os.File
+	FileName string
+	Opt      *InputOpt
 }
 
 type InputOpt struct {

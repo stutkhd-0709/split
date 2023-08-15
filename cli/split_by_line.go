@@ -8,7 +8,7 @@ import (
 	helpers "github.com/stutkhd-0709/enable_bootcamp/helpers"
 )
 
-func (f *InputFile) SplitByLine(linesPerFile int) error {
+func (f *InputFile) SplitByLine(linesPerFile int, dist string) error {
 	scanner := bufio.NewScanner(f.File)
 
 	var lineResult []byte
@@ -24,14 +24,17 @@ func (f *InputFile) SplitByLine(linesPerFile int) error {
 		lineCount++
 		if lineCount%linesPerFile == 0 {
 			wg.Add(1)
-			go func(_fileCount int, _lineResult []byte) {
+			go func(_fileCount int, _lineResult []byte, _dist string) {
 				defer wg.Done()
-				outputFilename := helpers.GenerateFilename(f.NameWithoutExt, _fileCount, f.Ext)
-				err := os.WriteFile(outputFilename, _lineResult, 0644)
+				outputFilename, err := helpers.GenerateFilename(_dist, _fileCount)
 				if err != nil {
 					errors <- err
 				}
-			}(fileCount, lineResult)
+				err = os.WriteFile(outputFilename, _lineResult, 0644)
+				if err != nil {
+					errors <- err
+				}
+			}(fileCount, lineResult, dist)
 			fileCount++
 			lineResult = []byte{}
 		}

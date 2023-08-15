@@ -8,7 +8,7 @@ import (
 	helpers "github.com/stutkhd-0709/enable_bootcamp/helpers"
 )
 
-func (f *InputFile) SplitBySize(sizePerFile int) error {
+func (f *InputFile) SplitBySize(sizePerFile int, dist string) error {
 	buf := make([]byte, sizePerFile)
 
 	var wg sync.WaitGroup
@@ -34,14 +34,17 @@ func (f *InputFile) SplitBySize(sizePerFile int) error {
 		wg.Add(1)
 		writeBuf := make([]byte, readByte)
 		copy(writeBuf, buf[:readByte])
-		go func(_fileCount int, _writBuf []byte) {
+		go func(_fileCount int, _writBuf []byte, _dist string) {
 			defer wg.Done()
-			outputFilename := helpers.GenerateFilename(f.NameWithoutExt, _fileCount, f.Ext)
-			err := os.WriteFile(outputFilename, _writBuf, 0644)
+			outputFilename, err := helpers.GenerateFilename(_dist, _fileCount)
 			if err != nil {
 				errors <- err
 			}
-		}(fileCount, writeBuf)
+			err = os.WriteFile(outputFilename, _writBuf, 0644)
+			if err != nil {
+				errors <- err
+			}
+		}(fileCount, writeBuf, dist)
 
 		fileCount++
 	}
