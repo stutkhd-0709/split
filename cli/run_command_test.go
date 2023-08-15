@@ -26,9 +26,9 @@ func TestRunCommand(t *testing.T) {
 		"noArgument":               {"", "", hasErr},
 		"noExistFile":              {"no_exits.txt", "", hasErr},
 		"noOptionWithExistFile":    {"test.txt", "", hasErr},
-		"LineOptionWithExistFile":  {"-l 2 test.txt", "", noErr},
-		"sizeOptionWithExistFile":  {"-n 2 test.txt", "", noErr},
-		"chunkOptionWithExistFile": {"-b 2 test.txt", "", noErr},
+		"LineOptionWithExistFile":  {"-l 2 test.txt ./test/", "", noErr},
+		"sizeOptionWithExistFile":  {"-n 2 test.txt ./test/", "", noErr},
+		"chunkOptionWithExistFile": {"-b 2 test.txt ./test/", "", noErr},
 	}
 
 	// テストを並列に実行する
@@ -71,9 +71,14 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
 
 	status := m.Run()
+
+	file.Close()
+
+	if err := os.Remove("test.txt"); err != nil {
+		log.Fatalf("Failed to remove test.txt: %v", err)
+	}
 
 	os.Exit(status)
 }
