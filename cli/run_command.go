@@ -1,18 +1,29 @@
 package cli
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path"
-
-	types "github.com/stutkhd-0709/enable_bootcamp/types"
+	"sync"
 
 	helpers "github.com/stutkhd-0709/enable_bootcamp/helpers"
 )
 
-type InputFile types.InputFile
+type InputFile struct {
+	Reader   io.Reader
+	FileSize int64
+	FileName string
+	Opt      *InputOpt
+}
+
+type InputOpt struct {
+	LineOpt  int
+	ChunkOpt int
+	SizeOpt  string
+}
 
 type CLI struct {
 	Stdout io.Writer
@@ -68,7 +79,7 @@ func (cli *CLI) RunCommand(args []string) error {
 		return fmt.Errorf("ファイルが存在しません")
 	}
 
-	Opts := &types.InputOpt{
+	Opts := &InputOpt{
 		LineOpt:  lineOpt,
 		ChunkOpt: chunkOpt,
 		SizeOpt:  sizeOpt,
@@ -97,15 +108,15 @@ func (cli *CLI) RunCommand(args []string) error {
 	}
 
 	if lineOpt != 0 {
-		err = inputFile.SplitByLine(lineOpt, dist)
+		_, err = inputFile.SplitByLine(lineOpt, dist)
 	} else if chunkOpt != 0 {
-		err = inputFile.SplitByChunk(chunkOpt, dist)
+		_, err = inputFile.SplitByChunk(chunkOpt, dist)
 	} else if sizeOpt != "0" {
 		intFileSize, convertErr := helpers.ConvertFileSizeToInt(sizeOpt)
 		if convertErr != nil {
 			return err
 		}
-		err = inputFile.SplitBySize(intFileSize, dist)
+		_, err = inputFile.SplitBySize(intFileSize, dist)
 	}
 
 	if err != nil {
@@ -113,4 +124,121 @@ func (cli *CLI) RunCommand(args []string) error {
 	}
 
 	return nil
+}
+
+func (f *InputFile) SplitByChunk(fileChunk int, dist string) (int, error) {
+	chunkFileSize := int(f.FileSize) / fileChunk
+
+	fileCount, err := f.SplitBySize(chunkFileSize, dist)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return fileCount, nil
+}
+
+func (f *InputFile) SplitBySize(sizePerFile int, dist string) (int, error) {
+	buf := make([]byte, sizePerFile)
+
+	var wg sync.WaitGroup
+	errors := make(chan error)
+
+	fileCount := 0
+	for {
+		// buf: 読み込んだデータ
+		// readByte: 読み込んだbyte数
+		// readで読み込んだバイト数などの情報を持っているので毎回次のデータになる
+		readByte, err := f.Reader.Read(buf)
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return 0, err
+		}
+		if readByte == 0 {
+			break
+		}
+
+		wg.Add(1)
+		writeBuf := make([]byte, readByte)
+		copy(writeBuf, buf[:readByte])
+		go func(_fileCount int, _writBuf []byte, _dist string) {
+			defer wg.Done()
+			outputFilename, err := helpers.GenerateFilename(_dist, _fileCount)
+			if err != nil {
+				errors <- err
+			}
+			err = os.WriteFile(outputFilename, _writBuf, 0644)
+			if err != nil {
+				errors <- err
+			}
+		}(fileCount, writeBuf, dist)
+
+		fileCount++
+	}
+
+	go func() {
+		wg.Wait()
+		close(errors)
+	}()
+
+	for err := range errors {
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return fileCount, nil
+}
+
+func (f *InputFile) SplitByLine(linesPerFile int, dist string) (int, error) {
+	scanner := bufio.NewScanner(f.Reader)
+
+	var lineResult []byte
+	lineCount := 0
+	fileCount := 0
+
+	var wg sync.WaitGroup
+	errors := make(chan error)
+
+	for scanner.Scan() {
+		line := append(scanner.Bytes(), byte('\n'))
+		lineResult = append(lineResult, line...)
+		lineCount++
+		if lineCount%linesPerFile == 0 {
+			wg.Add(1)
+			go func(_fileCount int, _lineResult []byte, _dist string) {
+				defer wg.Done()
+				outputFilename, err := helpers.GenerateFilename(_dist, _fileCount)
+				if err != nil {
+					errors <- err
+				}
+				err = os.WriteFile(outputFilename, _lineResult, 0644)
+				if err != nil {
+					errors <- err
+				}
+			}(fileCount, lineResult, dist)
+			fileCount++
+			lineResult = []byte{}
+		}
+	}
+
+	go func() {
+		wg.Wait()
+		close(errors)
+	}()
+
+	// エラーがあるか確認
+	// 上のgoroutineが実行されるまで行う
+	// 子goroutineが処理を終了するたびに実行される
+	// for rangeをchannelで行う場合、goではそのチャンネルがcloseされるまで実行される
+	for err := range errors {
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return fileCount, nil
 }

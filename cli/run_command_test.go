@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -61,6 +62,67 @@ func TestRunCommand(t *testing.T) {
 				t.Fatal("expected error did not occur")
 			case !tt.wantErr && err != nil:
 				t.Fatal("unexpected error:", err)
+			}
+		})
+	}
+}
+
+func TestSplit(t *testing.T) {
+	t.Helper()
+	t.Parallel()
+
+	const (
+		noErr  = false
+		hasErr = true
+	)
+
+	// 空ファイルなので分割されない
+	cases := map[string]struct {
+		lengthPerline  int
+		line           int
+		lineOpt        int
+		totalSplitFile int
+		wantErr        bool
+	}{
+		"Split 2 files": {10, 2, 5, 2, noErr},
+	}
+
+	// テストを並列に実行する
+	for name, tt := range cases {
+		name, tt := name, tt
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			data := make([]byte, tt.line*tt.lengthPerline)
+			for i := range data {
+				if i%tt.lengthPerline == tt.lengthPerline-1 {
+					data[i] = '\n'
+				} else {
+					data[i] = 'a'
+				}
+			}
+
+			var r io.Reader = bytes.NewBuffer(data)
+
+			file := &InputFile{
+				Reader:   r,
+				FileName: "test",
+				Opt: &InputOpt{
+					LineOpt:  tt.lineOpt,
+					ChunkOpt: 0,
+					SizeOpt:  "",
+				},
+			}
+
+			fileCount, err := file.SplitByLine(tt.lineOpt, "./test/")
+
+			switch {
+			case tt.wantErr && err == nil:
+				t.Fatal("expected error did not occur")
+			case !tt.wantErr && err != nil:
+				t.Fatal("unexpected error:", err)
+			case fileCount != tt.totalSplitFile:
+				t.Fatalf("Assertion Error: Get split file count is not expected, Get: %v, Expect: %v", fileCount, tt.totalSplitFile)
 			}
 		})
 	}
