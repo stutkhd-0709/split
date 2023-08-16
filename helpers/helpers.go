@@ -14,7 +14,7 @@ var fileSizeUnitToBytes = map[string]int{
 	"G": 1024 * 1024 * 1024,
 }
 
-func ConvertFileSizeToInt(strFileSize string) (int, error) {
+func ConvertFileSizeToInt(strFileSize string) (int64, error) {
 	numericPattern := `^\d+$`
 	match, err := regexp.MatchString(numericPattern, strFileSize)
 
@@ -50,10 +50,10 @@ func ConvertFileSizeToInt(strFileSize string) (int, error) {
 		intFileByteSize = inputFileSize * unitToByte
 	}
 
-	return intFileByteSize, nil
+	return int64(intFileByteSize), nil
 }
 
-func GenerateFilename(dist string, count int) (string, error) {
+func GenerateFilename(dist string, count int64) (string, error) {
 	// rune型として扱う -> 文字コードのこと
 	// 元の文字に戻すにはstring関数を使う
 	firstChar := 'a' + (count / 26 % 26)
