@@ -26,6 +26,7 @@ func TestRunCommand(t *testing.T) {
 		"noArgument":               {"", "", hasErr},
 		"noExistFile":              {"no_exits.txt", "", hasErr},
 		"noOptionWithExistFile":    {"test.txt", "", hasErr},
+		"overTwoArgument":          {"test.txt a b", "", hasErr},
 		"LineOptionWithExistFile":  {"-l 2 test.txt ./test/", "", noErr},
 		"sizeOptionWithExistFile":  {"-n 2 test.txt ./test/", "", noErr},
 		"chunkOptionWithExistFile": {"-b 2 test.txt ./test/", "", noErr},

@@ -39,15 +39,19 @@ func (cli *CLI) RunCommand(args []string) error {
 	}
 
 	if flagSet.NArg() < 0 {
-		return fmt.Errorf("[ERROR] ファイルを指定してください")
+		return fmt.Errorf("ファイルを指定してください")
+	}
+
+	if flagSet.NArg() > 2 {
+		return fmt.Errorf("引数が多いです")
 	}
 
 	if flagSet.NFlag() == 0 {
-		return fmt.Errorf("[ERROR] オプションを指定してください")
+		return fmt.Errorf("オプションを指定してください")
 	}
 
 	if lineOpt == 0 && chunkOpt == 0 && sizeOpt == "" {
-		return fmt.Errorf("[ERROR] l, n, bのうちどれかオプションを指定してください")
+		return fmt.Errorf("l, n, bのうちどれかオプションを指定してください")
 	}
 
 	filepath := flagSet.Args()[0]
@@ -61,7 +65,7 @@ func (cli *CLI) RunCommand(args []string) error {
 
 	_, err = os.Stat(filepath)
 	if err != nil {
-		return fmt.Errorf("[ERROR] ファイルが存在しません")
+		return fmt.Errorf("ファイルが存在しません")
 	}
 
 	Opts := &types.InputOpt{
