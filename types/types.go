@@ -1,11 +1,12 @@
 package types
 
 import (
-	"os"
+	"io"
 )
 
 type InputFile struct {
-	File     *os.File
+	Reader   io.Reader
+	FileSize int64
 	FileName string
 	Opt      *InputOpt
 }

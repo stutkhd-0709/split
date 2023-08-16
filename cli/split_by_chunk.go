@@ -1,16 +1,9 @@
 package cli
 
 func (f *InputFile) SplitByChunk(fileChunk int, dist string) error {
-	fileinfo, err := f.File.Stat()
-	if err != nil {
-		return err
-	}
+	chunkFileSize := int(f.FileSize) / fileChunk
 
-	fileSize := fileinfo.Size()
-
-	chunkFileSize := int(fileSize) / fileChunk
-
-	err = f.SplitBySize(chunkFileSize, dist)
+	err := f.SplitBySize(chunkFileSize, dist)
 
 	if err != nil {
 		return err

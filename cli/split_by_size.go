@@ -19,7 +19,7 @@ func (f *InputFile) SplitBySize(sizePerFile int, dist string) error {
 		// buf: 読み込んだデータ
 		// readByte: 読み込んだbyte数
 		// readで読み込んだバイト数などの情報を持っているので毎回次のデータになる
-		readByte, err := f.File.Read(buf)
+		readByte, err := f.Reader.Read(buf)
 
 		if err != nil {
 			if err == io.EOF {

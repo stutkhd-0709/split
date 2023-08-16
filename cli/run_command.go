@@ -78,8 +78,16 @@ func (cli *CLI) RunCommand(args []string) error {
 
 	defer sf.Close()
 
+	fileinfo, err := sf.Stat()
+	if err != nil {
+		return err
+	}
+
+	fileSize := fileinfo.Size()
+
 	inputFile := &InputFile{
-		File:     sf,
+		Reader:   sf,
+		FileSize: fileSize,
 		FileName: path.Base(filepath),
 		Opt:      Opts,
 	}

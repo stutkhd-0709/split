@@ -9,7 +9,7 @@ import (
 )
 
 func (f *InputFile) SplitByLine(linesPerFile int, dist string) error {
-	scanner := bufio.NewScanner(f.File)
+	scanner := bufio.NewScanner(f.Reader)
 
 	var lineResult []byte
 	lineCount := 0
