@@ -9,7 +9,7 @@ import (
 	"path"
 	"sync"
 
-	helpers "github.com/stutkhd-0709/enable_bootcamp/helpers"
+	helpers "github.com/stutkhd-0709/split/helpers"
 )
 
 type InputFile struct {

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/stutkhd-0709/enable_bootcamp/cli"
+	"github.com/stutkhd-0709/split/cli"
 )
 
 func main() {

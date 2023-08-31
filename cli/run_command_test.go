@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	helpers "github.com/stutkhd-0709/enable_bootcamp/helpers"
+	helpers "github.com/stutkhd-0709/split/helpers"
 )
 
 func TestRunCommand(t *testing.T) {
