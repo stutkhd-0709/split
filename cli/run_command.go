@@ -49,19 +49,15 @@ func (cli *CLI) RunCommand(args []string) error {
 		return err
 	}
 
-	if flagSet.NArg() < 0 {
+	// TODO: validaterに切り分けたい
+	switch {
+	case flagSet.NArg() < 0:
 		return fmt.Errorf("ファイルを指定してください")
-	}
-
-	if flagSet.NArg() > 2 {
+	case flagSet.NArg() > 2:
 		return fmt.Errorf("引数が多いです")
-	}
-
-	if flagSet.NFlag() == 0 {
+	case flagSet.NFlag() == 0:
 		return fmt.Errorf("オプションを指定してください")
-	}
-
-	if lineOpt == 0 && chunkOpt == 0 && sizeOpt == "" {
+	case lineOpt == 0 && chunkOpt == 0 && sizeOpt == "":
 		return fmt.Errorf("l, n, bのうちどれかオプションを指定してください")
 	}
 
@@ -107,11 +103,12 @@ func (cli *CLI) RunCommand(args []string) error {
 		Opt:      Opts,
 	}
 
-	if lineOpt != 0 {
+	switch {
+	case lineOpt != 0:
 		_, err = inputFile.SplitByLine(dist)
-	} else if chunkOpt != 0 {
+	case chunkOpt != 0:
 		_, err = inputFile.SplitByChunk(dist)
-	} else if sizeOpt != "0" {
+	case sizeOpt != "0":
 		_, err = inputFile.SplitBySize(dist)
 	}
 
