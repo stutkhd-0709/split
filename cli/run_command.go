@@ -9,7 +9,7 @@ import (
 	"path"
 	"sync"
 
-	helpers "github.com/stutkhd-0709/split/helpers"
+	filehelpers "github.com/stutkhd-0709/split/filehelpers"
 )
 
 type InputFile struct {
@@ -160,7 +160,7 @@ func (f *InputFile) SplitByChunk(dist string) (int64, error) {
 		copy(writeBuf, buf[:readByte])
 		go func(_fileCount int64, _writBuf []byte, _dist string) {
 			defer wg.Done()
-			outputFilename, err := helpers.GenerateFilename(_dist, _fileCount)
+			outputFilename, err := filehelpers.GenerateFilename(_dist, _fileCount)
 			if err != nil {
 				errors <- err
 			}
@@ -188,7 +188,7 @@ func (f *InputFile) SplitByChunk(dist string) (int64, error) {
 }
 
 func (f *InputFile) SplitBySize(dist string) (int64, error) {
-	sizePerFile, err := helpers.ConvertFileSizeToInt(f.Opt.SizeOpt)
+	sizePerFile, err := filehelpers.ConvertFileSizeToInt(f.Opt.SizeOpt)
 	if err != nil {
 		return 0, err
 	}
@@ -224,7 +224,7 @@ func (f *InputFile) SplitBySize(dist string) (int64, error) {
 		copy(writeBuf, buf[:readByte])
 		go func(_fileCount int64, _writBuf []byte, _dist string) {
 			defer wg.Done()
-			outputFilename, err := helpers.GenerateFilename(_dist, _fileCount)
+			outputFilename, err := filehelpers.GenerateFilename(_dist, _fileCount)
 			if err != nil {
 				errors <- err
 			}
@@ -273,7 +273,7 @@ func (f *InputFile) SplitByLine(dist string) (int64, error) {
 			wg.Add(1)
 			go func(_fileCount int64, _lineResult []byte, _dist string) {
 				defer wg.Done()
-				outputFilename, err := helpers.GenerateFilename(_dist, _fileCount)
+				outputFilename, err := filehelpers.GenerateFilename(_dist, _fileCount)
 				if err != nil {
 					errors <- err
 				}

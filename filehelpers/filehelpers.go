@@ -1,4 +1,4 @@
-package helpers
+package filehelpers
 
 import (
 	"fmt"
@@ -14,6 +14,7 @@ var fileSizeUnitToBytes = map[string]int{
 	"G": 1024 * 1024 * 1024,
 }
 
+// 別のファイルに分けても良さそう -> byteの時しか使用しないので
 func ConvertFileSizeToInt(strFileSize string) (int64, error) {
 	numericPattern := `^\d+$`
 	match, err := regexp.MatchString(numericPattern, strFileSize)

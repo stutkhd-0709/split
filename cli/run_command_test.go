@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	helpers "github.com/stutkhd-0709/split/helpers"
+	filehelpers "github.com/stutkhd-0709/split/filehelpers"
 )
 
 func TestRunCommand(t *testing.T) {
@@ -264,7 +264,7 @@ func TestSplitBySize(t *testing.T) {
 
 			sizeOpts := tt.sizeOpts
 
-			sizeOriginFile, err := helpers.ConvertFileSizeToInt(sizeOpts.fileSizeWithUnit)
+			sizeOriginFile, err := filehelpers.ConvertFileSizeToInt(sizeOpts.fileSizeWithUnit)
 
 			if err != nil {
 				t.Fatal("convert origin filesize to int:", err)
@@ -379,7 +379,7 @@ func TestSplitByChunk(t *testing.T) {
 
 			chunkOpts := tt.chunkOpts
 
-			sizeOriginFile, err := helpers.ConvertFileSizeToInt(chunkOpts.fileSizeWithUnit)
+			sizeOriginFile, err := filehelpers.ConvertFileSizeToInt(chunkOpts.fileSizeWithUnit)
 
 			if err != nil {
 				t.Fatal("convert origin filesize to int:", err)
