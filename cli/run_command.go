@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/stutkhd-0709/split/filehelpers"
 	"github.com/stutkhd-0709/split/model"
 )
 
@@ -16,41 +17,23 @@ type CLI struct {
 	Stdin  io.Reader
 }
 
+var (
+	lineOpt  int64
+	chunkOpt int64
+	sizeOpt  string
+)
+
+func init() {
+	flag.Int64Var(&lineOpt, "l", 0, "分割ファイルの行数")
+	flag.Int64Var(&chunkOpt, "n", 0, "分割したいファイル数")
+	flag.StringVar(&sizeOpt, "b", "", "分割したいファイルサイズ")
+}
+
 func (cli *CLI) RunCommand(args []string) error {
-	var (
-		lineOpt  int64
-		chunkOpt int64
-		sizeOpt  string
-	)
-	flagSet := flag.NewFlagSet(args[0], flag.ContinueOnError)
-	flagSet.Int64Var(&lineOpt, "l", 0, "分割ファイルの行数")
-	flagSet.Int64Var(&chunkOpt, "n", 0, "分割したいファイル数")
-	flagSet.StringVar(&sizeOpt, "b", "", "分割したいファイルサイズ")
+	filepath := flag.Args()[0]
 
-	// テスト用にos.Argsを使用しないようにする
-	err := flagSet.Parse(args[1:])
-
-	if err != nil {
-		return err
-	}
-
-	// TODO: validaterに切り分けたい
-	switch {
-	case flagSet.NArg() < 0:
-		return fmt.Errorf("ファイルを指定してください")
-	case flagSet.NArg() > 2:
-		return fmt.Errorf("引数が多いです")
-	case flagSet.NFlag() == 0:
-		return fmt.Errorf("オプションを指定してください")
-	case lineOpt == 0 && chunkOpt == 0 && sizeOpt == "":
-		return fmt.Errorf("l, n, bのうちどれかオプションを指定してください")
-	}
-
-	filepath := flagSet.Args()[0]
-
-	_, err = os.Stat(filepath)
-	if err != nil {
-		return fmt.Errorf("ファイルが存在しません")
+	if err := validateArgs(filepath); err != nil {
+		return fmt.Errorf(err.Error())
 	}
 
 	sf, err := os.Open(filepath)
@@ -73,16 +56,20 @@ func (cli *CLI) RunCommand(args []string) error {
 	case lineOpt != 0:
 		splitter = NewLineSplitter(sf, fileSize, lineOpt)
 	case chunkOpt != 0:
-		splitter = NewChunkSplitter()
+		splitter = NewChunkSplitter(sf, fileSize, chunkOpt)
 	case sizeOpt != "0":
-		splitter = NewSizeSplitter()
+		intSizeOpt, err := filehelpers.ConvertFileSizeToInt(sizeOpt)
+		if err != nil {
+			return fmt.Errorf(err.Error())
+		}
+		splitter = NewSizeSplitter(sf, fileSize, intSizeOpt)
 	default:
 		return fmt.Errorf("サイズを0以上に指定してください")
 	}
 
 	var dist string
-	if len(flagSet.Args()) > 1 {
-		dist = flagSet.Args()[1]
+	if len(flag.Args()) > 1 {
+		dist = flag.Args()[1]
 	} else {
 		dist = ""
 	}
@@ -92,6 +79,27 @@ func (cli *CLI) RunCommand(args []string) error {
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func validateArgs(filepath string) error {
+	flag.Parse()
+	switch {
+	case flag.NArg() < 0:
+		return fmt.Errorf("ファイルを指定してください")
+	case flag.NArg() > 2:
+		return fmt.Errorf("引数が多いです")
+	case flag.NFlag() == 0:
+		return fmt.Errorf("オプションを指定してください")
+	case lineOpt == 0 && chunkOpt == 0 && sizeOpt == "":
+		return fmt.Errorf("l, n, bのうちどれかオプションを指定してください")
+	}
+
+	_, err := os.Stat(filepath)
+	if err != nil {
+		return fmt.Errorf("ファイルが存在しません")
 	}
 
 	return nil
