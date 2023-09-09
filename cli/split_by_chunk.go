@@ -7,24 +7,25 @@ import (
 	"sync"
 
 	filehelpers "github.com/stutkhd-0709/split/filehelpers"
-	"github.com/stutkhd-0709/split/model"
 )
 
 type chunkSplitter struct {
 	Reader       io.Reader
 	FileSize     int64
 	divisionUnit int64
+	dist         string
 }
 
-func NewChunkSplitter(reader io.Reader, filesize int64, divisionUnit int64) model.Splitter {
+func NewChunkSplitter(reader io.Reader, filesize int64, divisionUnit int64, dist string) Splitter {
 	return &chunkSplitter{
 		Reader:       reader,
 		FileSize:     filesize,
 		divisionUnit: divisionUnit,
+		dist:         dist,
 	}
 }
 
-func (s *chunkSplitter) Split(dist string) (int64, error) {
+func (s *chunkSplitter) Split() (int64, error) {
 	fileChunk := s.divisionUnit
 	chunkFileSize := s.FileSize / fileChunk
 
@@ -73,7 +74,7 @@ func (s *chunkSplitter) Split(dist string) (int64, error) {
 			if err != nil {
 				errors <- err
 			}
-		}(fileCount, writeBuf, dist)
+		}(fileCount, writeBuf, s.dist)
 
 		fileCount++
 	}

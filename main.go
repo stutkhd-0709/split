@@ -6,7 +6,17 @@ import (
 	"github.com/stutkhd-0709/split/cli"
 )
 
+const (
+	ExitOK int = 0
+	ExitNG int = 1
+)
+
 func main() {
-	exitCode := cli.Main(os.Args)
-	os.Exit(exitCode)
+	cli := &cli.CLI{
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+		Stdin:  os.Stdin,
+	}
+
+	os.Exit(cli.RunCommand(os.Args))
 }

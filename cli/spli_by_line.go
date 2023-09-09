@@ -7,27 +7,22 @@ import (
 	"sync"
 
 	filehelpers "github.com/stutkhd-0709/split/filehelpers"
-	"github.com/stutkhd-0709/split/model"
 )
 
 // filesizeはテストしやすいので外部から渡すようにする
 type lineSplitter struct {
-	Reader       io.Reader
-	FileSize     int64
+	reader       io.Reader
 	divisionUnit int64
+	dist         string
 }
 
-func NewLineSplitter(reader io.Reader, filesize int64, divisionUnit int64) model.Splitter {
-	return &lineSplitter{
-		Reader:       reader,
-		FileSize:     filesize,
-		divisionUnit: divisionUnit,
-	}
+func NewLineSplitter(reader io.Reader, divisionUnit int64, dist string) Splitter {
+	return &lineSplitter{reader, divisionUnit, dist}
 }
 
-func (s *lineSplitter) Split(dist string) (int64, error) {
+func (s *lineSplitter) Split() (int64, error) {
 	linesPerFile := s.divisionUnit
-	scanner := bufio.NewScanner(s.Reader)
+	scanner := bufio.NewScanner(s.reader)
 	buf := make([]byte, 0, 64*1024)
 	// 内部バッファをbufに置き換え、１行あたりの行数を拡大させる
 	// これをループの内側に持ってくることは可能なのか？
@@ -56,7 +51,7 @@ func (s *lineSplitter) Split(dist string) (int64, error) {
 				if err != nil {
 					errors <- err
 				}
-			}(fileCount, lineResult, dist)
+			}(fileCount, lineResult, s.dist)
 			fileCount++
 			lineResult = []byte{}
 		}
