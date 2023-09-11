@@ -6,11 +6,6 @@ import (
 	"github.com/stutkhd-0709/split/cli"
 )
 
-const (
-	ExitOK int = 0
-	ExitNG int = 1
-)
-
 func main() {
 	cli := &cli.CLI{
 		Stdout: os.Stdout,
@@ -18,5 +13,6 @@ func main() {
 		Stdin:  os.Stdin,
 	}
 
-	os.Exit(cli.RunCommand(os.Args))
+	// os.Args[1:]でいいのか確認
+	os.Exit(cli.RunCommand(os.Args[1:]))
 }

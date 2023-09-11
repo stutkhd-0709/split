@@ -38,13 +38,35 @@ func init() {
 
 func (cli *CLI) RunCommand(args []string) int {
 	if err := ValidateArgs(); err != nil {
+		fmt.Println(err)
 		return ExitNG
 	}
 
 	filepath := flag.Args()[0]
 
-	f, fileSize, err := FileReader(filepath)
+	_, err := os.Stat(filepath)
 	if err != nil {
+		fmt.Println(err)
+		return ExitNG
+	}
+
+	f, err := os.Open(filepath)
+
+	if err != nil {
+		fmt.Println(err)
+		return ExitNG
+	}
+
+	fileinfo, err := f.Stat()
+	if err != nil {
+		fmt.Println(err)
+		return ExitNG
+	}
+
+	fileSize := fileinfo.Size()
+
+	if err != nil {
+		fmt.Println(err)
 		return ExitNG
 	}
 
@@ -77,6 +99,7 @@ func (cli *CLI) RunCommand(args []string) int {
 	_, err = splitter.Split()
 
 	if err != nil {
+		fmt.Println(err)
 		return ExitNG
 	}
 
@@ -98,30 +121,4 @@ func ValidateArgs() error {
 
 	return nil
 
-}
-
-// getという名前は使用しない方がいいらしい
-// https://google.github.io/styleguide/go/decisions#getters
-func FileReader(filepath string) (io.Reader, int64, error) {
-	_, err := os.Stat(filepath)
-	if err != nil {
-		return nil, 0, fmt.Errorf("ファイルが存在しません")
-	}
-
-	file, err := os.Open(filepath)
-
-	if err != nil {
-		return nil, 0, err
-	}
-
-	defer file.Close()
-
-	fileinfo, err := file.Stat()
-	if err != nil {
-		return nil, 0, err
-	}
-
-	fileSize := fileinfo.Size()
-
-	return file, fileSize, nil
 }
