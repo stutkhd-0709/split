@@ -24,27 +24,34 @@ const (
 	ExitNG int = 1
 )
 
-var (
-	lineOpt  int64
-	chunkOpt int64
-	sizeOpt  string
-)
-
-func init() {
-	flag.Int64Var(&lineOpt, "l", 0, "分割ファイルの行数")
-	flag.Int64Var(&chunkOpt, "n", 0, "分割したいファイル数")
-	flag.StringVar(&sizeOpt, "b", "", "分割したいファイルサイズ")
-}
-
 func (cli *CLI) RunCommand(args []string) int {
-	if err := ValidateArgs(); err != nil {
+	// 内側に入れないと、並列テストの際に前後のテストに影響されてしまう
+	var (
+		lineOpt  int64
+		chunkOpt int64
+		sizeOpt  string
+	)
+
+	flagSet := flag.NewFlagSet(args[0], flag.ContinueOnError)
+	flagSet.Int64Var(&lineOpt, "l", 0, "分割ファイルの行数")
+	flagSet.Int64Var(&chunkOpt, "n", 0, "分割したいファイル数")
+	flagSet.StringVar(&sizeOpt, "b", "", "分割したいファイルサイズ")
+
+	// テスト用にos.Argsを使用しないようにする
+	err := flagSet.Parse(args)
+
+	if err != nil {
+		fmt.Println(err)
+		return ExitNG
+	}
+	if err := ValidateArgs(flagSet); err != nil {
 		fmt.Println(err)
 		return ExitNG
 	}
 
-	filepath := flag.Args()[0]
+	filepath := flagSet.Args()[0]
 
-	_, err := os.Stat(filepath)
+	_, err = os.Stat(filepath)
 	if err != nil {
 		fmt.Println(err)
 		return ExitNG
@@ -86,13 +93,15 @@ func (cli *CLI) RunCommand(args []string) int {
 		splitter = NewLineSplitter(f, lineOpt, dist)
 	case chunkOpt != 0:
 		splitter = NewChunkSplitter(f, fileSize, chunkOpt, dist)
-	case sizeOpt != "0":
+	case sizeOpt != "":
 		intSizeOpt, err := filehelpers.ConvertFileSizeToInt(sizeOpt)
 		if err != nil {
+			fmt.Println(err)
 			return ExitNG
 		}
 		splitter = NewSizeSplitter(f, fileSize, intSizeOpt, dist)
 	default:
+		fmt.Println("オプションを指定してください")
 		return ExitNG
 	}
 
@@ -106,17 +115,14 @@ func (cli *CLI) RunCommand(args []string) int {
 	return ExitOK
 }
 
-func ValidateArgs() error {
-	flag.Parse()
+func ValidateArgs(fs *flag.FlagSet) error {
 	switch {
-	case flag.NArg() < 0:
+	case fs.NArg() < 0:
 		return fmt.Errorf("ファイルを指定してください")
-	case flag.NArg() > 2:
+	case fs.NArg() > 2:
 		return fmt.Errorf("引数が多いです")
-	case flag.NFlag() == 0:
+	case fs.NFlag() == 0:
 		return fmt.Errorf("オプションを指定してください")
-	case lineOpt == 0 && chunkOpt == 0 && sizeOpt == "":
-		return fmt.Errorf("l, n, bのうちどれかオプションを指定してください")
 	}
 
 	return nil

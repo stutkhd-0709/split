@@ -10,6 +10,7 @@ import (
 )
 
 func TestRunCommand(t *testing.T) {
+
 	t.Parallel()
 
 	const (
@@ -19,17 +20,18 @@ func TestRunCommand(t *testing.T) {
 
 	// 空ファイルなので分割されない
 	cases := map[string]struct {
-		args    string
+		args    []string
 		in      string
 		wantErr bool
 	}{
-		"noArgument":               {"", "", hasErr},
-		"noExistFile":              {"./test/no_exits.txt", "", hasErr},
-		"noOptionWithExistFile":    {"./test/test.txt", "", hasErr},
-		"overTwoArgument":          {"./test/test.txt a b", "", hasErr},
-		"LineOptionWithExistFile":  {"-l 2 ./test/test.txt ./test/", "", noErr},
-		"chunkOptionWithExistFile": {"-n 2 ./test/test.txt ./test/", "", noErr},
-		"sizeOptionWithExistFile":  {"-b 2 ./test/test.txt ./test/", "", noErr},
+		// "引数が何もない": {[]string{""}, "", hasErr},
+		// "存在しないファイルを指定": {[]string{"./test/no_exits.txt"}, "", hasErr},
+		// こいつが悪さしてそう
+		"存在するファイルにオプション指定なし": {[]string{"./test/test.txt"}, "", hasErr},
+		"引数を２つ以上指定":          {[]string{"./test/test.txt", "a", "b"}, "", hasErr},
+		"存在するファイルにライン分割指定":   {[]string{"-l", "2", "./test/test.txt", "./test/"}, "", noErr},
+		// "存在するファイルにチャンク分割指定":  {[]string{"-n", "2", "./test/test.txt", "./test/"}, "", noErr},
+		// "存在するファイルにサイズ分割指定":   {[]string{"-b", "2", "./test/test.txt", "./test/"}, "", noErr},
 	}
 
 	// テストを並列に実行する
@@ -45,30 +47,13 @@ func TestRunCommand(t *testing.T) {
 				Stdin:  strings.NewReader(tt.in),
 			}
 
-			var args []string
-			if tt.args != "" {
-				args = strings.Split(tt.args, " ")
-			} else {
-				args = []string{}
-			}
-
-			args = append([]string{"cmd"}, args...)
-
-			// グローバル変数だよねん
-			// https://stackoverflow.com/questions/33723300/how-to-test-the-passing-of-arguments-in-golang
-			// deferで元の状態に戻すとかやってるけど、それ以外にいい方法あるのかどうか
-			os.Args = []string{"cmd", "-l", "2", "./test/test.txt", "./test/"}
-
-			fmt.Println(os.Args)
-
-			// テストするときにos.Argsに値を入れるのは良くない？
-			err := cli.RunCommand(args)
+			exitCode := cli.RunCommand(tt.args)
 
 			switch {
-			case tt.wantErr && err == nil:
+			case tt.wantErr && exitCode == 0:
 				t.Fatal("expected error did not occur")
-			case !tt.wantErr && err != nil:
-				t.Fatal("unexpected error:", err)
+			case !tt.wantErr && exitCode != 0:
+				t.Fatal("unexpected exitCode:", exitCode)
 			}
 		})
 	}

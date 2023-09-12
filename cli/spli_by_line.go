@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -45,10 +46,12 @@ func (s *lineSplitter) Split() (int64, error) {
 				defer wg.Done()
 				outputFilename, err := filehelpers.GenerateFilename(_dist, _fileCount)
 				if err != nil {
+					fmt.Println(err)
 					errors <- err
 				}
 				err = os.WriteFile(outputFilename, _lineResult, 0644)
 				if err != nil {
+					fmt.Println(err)
 					errors <- err
 				}
 			}(fileCount, lineResult, s.dist)
@@ -64,6 +67,7 @@ func (s *lineSplitter) Split() (int64, error) {
 
 	for err := range errors {
 		if err != nil {
+			fmt.Println(err)
 			return 0, err
 		}
 	}
